@@ -59,8 +59,14 @@ show_help() {
 install_brew() {
   echo "Installing Homebrew..."
   show_progress "Installing Homebrew..."
-  /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)" >/dev/null 2>&1
-  echo -e "\nHomebrew installed successfully!"
+  NONINTERACTIVE=1 /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)" >/dev/null 2>&1
+
+  if is_installed "brew"; then
+    echo -e "\nHomebrew installed successfully!"
+  else
+    echo -e "\n\033[1;31mHomebrew installation failed. Please check the logs and try again.\033[0m"
+    exit 1
+  fi
 }
 
 # Install Docker
@@ -68,7 +74,13 @@ install_docker() {
   echo "Installing Docker Desktop..."
   show_progress "Installing Docker Desktop..."
   brew install --cask docker >/dev/null 2>&1
-  echo -e "\nDocker Desktop installed successfully!"
+
+  if is_installed "docker"; then
+    echo -e "\nDocker Desktop installed successfully!"
+  else
+    echo -e "\n\033[1;31mDocker installation failed. Please check the logs and try again.\033[0m"
+    exit 1
+  fi
 }
 
 # Install asdf
@@ -81,7 +93,13 @@ install_asdf() {
   echo '. "$HOME/.asdf/asdf.sh"' >>~/.bashrc
   echo '. "$HOME/.asdf/completions/asdf.bash"' >>~/.bashrc
   source ~/.zshrc || source ~/.bashrc
-  echo -e "\nasdf installed successfully!"
+
+  if is_installed "asdf"; then
+    echo -e "\nasdf installed successfully!"
+  else
+    echo -e "\n\033[1;31masdf installation failed. Please check the logs and try again.\033[0m"
+    exit 1
+  fi
 }
 
 # Install Python using asdf
@@ -91,7 +109,13 @@ install_python_with_asdf() {
   asdf plugin-add python >/dev/null 2>&1 || true
   asdf install python "$python_version" >/dev/null 2>&1
   asdf global python "$python_version" >/dev/null 2>&1
-  echo -e "\nPython $python_version installed and set as default successfully!"
+
+  if python --version 2>/dev/null | grep -q "$python_version"; then
+    echo -e "\nPython $python_version installed and set as default successfully!"
+  else
+    echo -e "\n\033[1;31mPython installation failed. Please check the logs and try again.\033[0m"
+    exit 1
+  fi
 }
 
 # Install aws-okta-processor
@@ -99,7 +123,13 @@ install_aws_okta_processor() {
   echo "Installing aws-okta-processor..."
   show_progress "Installing aws-okta-processor..."
   pip install aws-okta-processor >/dev/null 2>&1
-  echo -e "\naws-okta-processor installed successfully!"
+
+  if pip show aws-okta-processor >/dev/null 2>&1; then
+    echo -e "\naws-okta-processor installed successfully!"
+  else
+    echo -e "\n\033[1;31maws-okta-processor installation failed. Please check the logs and try again.\033[0m"
+    exit 1
+  fi
 }
 
 # Clone dotfiles repository
@@ -107,7 +137,28 @@ clone_dotfiles_repo() {
   echo "Cloning dotfiles repository..."
   show_progress "Cloning repository..."
   git clone "$dotfiles_repo" "$clone_dir" >/dev/null 2>&1
-  echo -e "\nRepository cloned to $clone_dir successfully!"
+
+  if [ -d "$clone_dir" ]; then
+    echo -e "\nRepository cloned to $clone_dir successfully!"
+  else
+    echo -e "\n\033[1;31mCloning repository failed. Please check the logs and try again.\033[0m"
+    exit 1
+  fi
+}
+
+# Install additional CLI tools
+install_cli_tool() {
+  local tool=$1
+  echo "Installing $tool..."
+  show_progress "Installing $tool..."
+  brew install "$tool" >/dev/null 2>&1
+
+  if is_installed "$tool"; then
+    echo -e "\n$tool installed successfully!"
+  else
+    echo -e "\n\033[1;31m$tool installation failed. Please check the logs and try again.\033[0m"
+    exit 1
+  fi
 }
 
 # Uninstall software
@@ -182,10 +233,7 @@ else
         brew) install_brew ;;
         docker) install_docker ;;
         asdf) install_asdf ;;
-        kubectl) brew install kubectl ;;
-        helm) brew install helm ;;
-        jq) brew install jq ;;
-        aws) brew install awscli ;;
+        kubectl | helm | jq | aws) install_cli_tool "$tool" ;;
       esac
     done
   else
