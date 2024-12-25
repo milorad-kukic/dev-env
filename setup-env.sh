@@ -61,6 +61,40 @@ show_help() {
   echo "installs aws-okta-processor, and clones the specified Git repository."
 }
 
+# Uninstall all installed software
+uninstall_software() {
+  print_header "Uninstalling Software"
+  for tool in "${software[@]}"; do
+    if is_installed "$tool"; then
+      echo "Uninstalling $tool..."
+      case $tool in
+        brew)
+          /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/uninstall.sh)"
+          ;;
+        docker)
+          brew uninstall --cask docker
+          ;;
+        asdf)
+          rm -rf ~/.asdf
+          sed -i '' '/asdf/d' ~/.zshrc ~/.bashrc 2>/dev/null || true
+          ;;
+        kubectl | helm | jq | aws)
+          brew uninstall "$tool"
+          ;;
+      esac
+      echo "$tool uninstalled."
+    else
+      echo "$tool is not installed, skipping..."
+    fi
+  done
+  if [ -d "$clone_dir" ]; then
+    echo "Removing cloned repository at $clone_dir..."
+    rm -rf "$clone_dir"
+  fi
+  echo "Uninstallation complete."
+  exit 0
+}
+
 # Install Homebrew
 install_brew() {
   echo "Installing Homebrew..."
@@ -206,7 +240,6 @@ while [[ "$1" =~ ^- ]]; do
       ;;
     --uninstall)
       uninstall_software
-      exit 0
       ;;
     --debug)
       debug_mode=true
