@@ -98,6 +98,21 @@ uninstall_software() {
 # Install Homebrew
 install_brew() {
   echo "Installing Homebrew..."
+
+  # Determine the correct Homebrew prefix based on the architecture
+  if [ "$(uname -m)" = "arm64" ]; then
+      # For Apple Silicon (M1/M2)
+      BREW_PREFIX="/opt/homebrew"
+  else
+      # For Intel-based Macs
+      BREW_PREFIX="/usr/local"
+  fi
+
+  # Ensure necessary directories exist and have correct ownership
+  echo "Preparing directories for Homebrew installation..."
+  sudo mkdir -p "${BREW_PREFIX}"
+  sudo chown -R "$(whoami):admin" "${BREW_PREFIX}"
+
   if $debug_mode; then
     NONINTERACTIVE=1 /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
   else
