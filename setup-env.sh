@@ -5,6 +5,7 @@ software=("brew" "docker" "asdf" "kubectl" "helm" "jq" "aws")
 python_version="3.9.13"
 dotfiles_repo="https://github.com/milorad-kukic/dotfiles"
 clone_dir="$HOME/MalwareSamples"
+debug_mode=false
 
 # Function to display fancy headers
 print_header() {
@@ -13,20 +14,24 @@ print_header() {
   echo "========================================"
 }
 
-# Function to show Docker-like progress
+# Function to show Docker-like progress (only if not in debug mode)
 show_progress() {
   local msg="$1"
-  local iterations=20  # Number of iterations for progress simulation
-  echo -n "$msg"
-  local i=0
-  while [ "$i" -lt "$iterations" ]; do
-    for spinner in "/" "-" "\\" "|"; do
-      echo -ne "\r$msg $spinner"
-      sleep 0.1
+  if $debug_mode; then
+    echo "$msg..."
+  else
+    local iterations=20  # Number of iterations for progress simulation
+    echo -n "$msg"
+    local i=0
+    while [ "$i" -lt "$iterations" ]; do
+      for spinner in "/" "-" "\\" "|"; do
+        echo -ne "\r$msg $spinner"
+        sleep 0.1
+      done
+      i=$((i + 1))
     done
-    i=$((i + 1))
-  done
-  echo -ne "\r$msg... Done!   \n"
+    echo -ne "\r$msg... Done!   \n"
+  fi
 }
 
 # Check if a command exists
@@ -41,6 +46,7 @@ show_help() {
   echo "Options:"
   echo "  -h, --help         Show this help message and exit."
   echo "  --uninstall        Uninstall all software installed by this script."
+  echo "  --debug            Enable debug mode to show logs instead of spinner."
   echo
   echo "This script checks if the following software is installed:"
   echo "  - Homebrew"
@@ -58,8 +64,12 @@ show_help() {
 # Install Homebrew
 install_brew() {
   echo "Installing Homebrew..."
-  show_progress "Installing Homebrew..."
-  NONINTERACTIVE=1 /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)" >/dev/null 2>&1
+  if $debug_mode; then
+    NONINTERACTIVE=1 /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
+  else
+    show_progress "Installing Homebrew..."
+    NONINTERACTIVE=1 /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)" >/dev/null 2>&1
+  fi
 
   if is_installed "brew"; then
     echo -e "\nHomebrew installed successfully!"
@@ -72,8 +82,12 @@ install_brew() {
 # Install Docker
 install_docker() {
   echo "Installing Docker Desktop..."
-  show_progress "Installing Docker Desktop..."
-  brew install --cask docker >/dev/null 2>&1
+  if $debug_mode; then
+    brew install --cask docker
+  else
+    show_progress "Installing Docker Desktop..."
+    brew install --cask docker >/dev/null 2>&1
+  fi
 
   if is_installed "docker"; then
     echo -e "\nDocker Desktop installed successfully!"
@@ -86,8 +100,12 @@ install_docker() {
 # Install asdf
 install_asdf() {
   echo "Installing asdf..."
-  show_progress "Installing asdf..."
-  git clone https://github.com/asdf-vm/asdf.git ~/.asdf --branch v0.12.0 >/dev/null 2>&1
+  if $debug_mode; then
+    git clone https://github.com/asdf-vm/asdf.git ~/.asdf --branch v0.12.0
+  else
+    show_progress "Installing asdf..."
+    git clone https://github.com/asdf-vm/asdf.git ~/.asdf --branch v0.12.0 >/dev/null 2>&1
+  fi
   echo '. "$HOME/.asdf/asdf.sh"' >>~/.zshrc
   echo '. "$HOME/.asdf/completions/asdf.bash"' >>~/.zshrc
   echo '. "$HOME/.asdf/asdf.sh"' >>~/.bashrc
@@ -105,10 +123,16 @@ install_asdf() {
 # Install Python using asdf
 install_python_with_asdf() {
   echo "Installing Python $python_version with asdf..."
-  show_progress "Installing Python $python_version..."
-  asdf plugin-add python >/dev/null 2>&1 || true
-  asdf install python "$python_version" >/dev/null 2>&1
-  asdf global python "$python_version" >/dev/null 2>&1
+  if $debug_mode; then
+    asdf plugin-add python || true
+    asdf install python "$python_version"
+    asdf global python "$python_version"
+  else
+    show_progress "Installing Python $python_version..."
+    asdf plugin-add python >/dev/null 2>&1 || true
+    asdf install python "$python_version" >/dev/null 2>&1
+    asdf global python "$python_version" >/dev/null 2>&1
+  fi
 
   if python --version 2>/dev/null | grep -q "$python_version"; then
     echo -e "\nPython $python_version installed and set as default successfully!"
@@ -121,8 +145,12 @@ install_python_with_asdf() {
 # Install aws-okta-processor
 install_aws_okta_processor() {
   echo "Installing aws-okta-processor..."
-  show_progress "Installing aws-okta-processor..."
-  pip install aws-okta-processor >/dev/null 2>&1
+  if $debug_mode; then
+    pip install aws-okta-processor
+  else
+    show_progress "Installing aws-okta-processor..."
+    pip install aws-okta-processor >/dev/null 2>&1
+  fi
 
   if pip show aws-okta-processor >/dev/null 2>&1; then
     echo -e "\naws-okta-processor installed successfully!"
@@ -135,8 +163,12 @@ install_aws_okta_processor() {
 # Clone dotfiles repository
 clone_dotfiles_repo() {
   echo "Cloning dotfiles repository..."
-  show_progress "Cloning repository..."
-  git clone "$dotfiles_repo" "$clone_dir" >/dev/null 2>&1
+  if $debug_mode; then
+    git clone "$dotfiles_repo" "$clone_dir"
+  else
+    show_progress "Cloning repository..."
+    git clone "$dotfiles_repo" "$clone_dir" >/dev/null 2>&1
+  fi
 
   if [ -d "$clone_dir" ]; then
     echo -e "\nRepository cloned to $clone_dir successfully!"
@@ -150,8 +182,12 @@ clone_dotfiles_repo() {
 install_cli_tool() {
   local tool=$1
   echo "Installing $tool..."
-  show_progress "Installing $tool..."
-  brew install "$tool" >/dev/null 2>&1
+  if $debug_mode; then
+    brew install "$tool"
+  else
+    show_progress "Installing $tool..."
+    brew install "$tool" >/dev/null 2>&1
+  fi
 
   if is_installed "$tool"; then
     echo -e "\n$tool installed successfully!"
@@ -161,50 +197,30 @@ install_cli_tool() {
   fi
 }
 
-# Uninstall software
-uninstall_software() {
-  echo "Uninstalling all software..."
-  for tool in "${software[@]}"; do
-    if is_installed "$tool"; then
-      case $tool in
-        brew)
-          echo "Uninstalling Homebrew..."
-          /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/uninstall.sh)"
-          ;;
-        docker)
-          echo "Uninstalling Docker Desktop..."
-          brew uninstall --cask docker
-          ;;
-        asdf)
-          echo "Uninstalling asdf..."
-          rm -rf ~/.asdf
-          sed -i '' '/asdf.sh/d' ~/.zshrc
-          sed -i '' '/asdf.bash/d' ~/.zshrc
-          sed -i '' '/asdf.sh/d' ~/.bashrc
-          sed -i '' '/asdf.bash/d' ~/.bashrc
-          ;;
-        *)
-          echo "Uninstalling $tool via Homebrew..."
-          brew uninstall "$tool"
-          ;;
-      esac
-    fi
-  done
-  rm -rf "$clone_dir"
-  echo "Uninstallation complete."
-}
+# Parse command-line options
+while [[ "$1" =~ ^- ]]; do
+  case $1 in
+    -h|--help)
+      show_help
+      exit 0
+      ;;
+    --uninstall)
+      uninstall_software
+      exit 0
+      ;;
+    --debug)
+      debug_mode=true
+      ;;
+    *)
+      echo "Unknown option: $1"
+      show_help
+      exit 1
+      ;;
+  esac
+  shift
+done
 
 # Main script logic
-if [[ "$1" == "-h" || "$1" == "--help" ]]; then
-  show_help
-  exit 0
-fi
-
-if [[ "$1" == "--uninstall" ]]; then
-  uninstall_software
-  exit 0
-fi
-
 print_header "Checking Installed Software"
 
 not_found=()
