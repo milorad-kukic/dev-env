@@ -148,23 +148,26 @@ install_docker() {
 
 # Install asdf
 install_asdf() {
-  echo "Installing asdf..."
+  echo "Installing asdf via Homebrew..."
   if $debug_mode; then
-    git clone https://github.com/asdf-vm/asdf.git ~/.asdf --branch v0.12.0
+    brew install asdf
   else
-    show_progress "Installing asdf..."
-    git clone https://github.com/asdf-vm/asdf.git ~/.asdf --branch v0.12.0 >/dev/null 2>&1
+    show_progress "Installing asdf via Homebrew..."
+    brew install asdf >/dev/null 2>&1
   fi
-  echo '. "$HOME/.asdf/asdf.sh"' >>~/.zshrc
-  echo '. "$HOME/.asdf/completions/asdf.bash"' >>~/.zshrc
-  echo '. "$HOME/.asdf/asdf.sh"' >>~/.bashrc
-  echo '. "$HOME/.asdf/completions/asdf.bash"' >>~/.bashrc
-  source ~/.zshrc || source ~/.bashrc
+
+  # Add asdf initialization to shell profiles
+  echo '. "$(brew --prefix asdf)/libexec/asdf.sh"' >>~/.zshrc
+  echo '. "$(brew --prefix asdf)/libexec/asdf.sh"' >>~/.bashrc
+  echo 'source "$(brew --prefix asdf)/libexec/asdf.fish"' >>~/.config/fish/config.fish
+
+  # Reload shell profiles
+  source ~/.zshrc || source ~/.bashrc || fish -c "source ~/.config/fish/config.fish"
 
   if is_installed "asdf"; then
-    echo -e "\nasdf installed successfully!"
+    echo -e "\nasdf installed successfully via Homebrew!"
   else
-    echo -e "\n\033[1;31masdf installation failed. Please check the logs and try again.\033[0m"
+    echo -e "\n\033[1;31masdf installation via Homebrew failed. Please check the logs and try again.\033[0m"
     exit 1
   fi
 }
