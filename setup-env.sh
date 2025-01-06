@@ -244,6 +244,25 @@ clone_dotfiles_repo() {
   fi
 }
 
+install_cli_tool() {
+  local tool=$1
+  echo "Installing $tool..."
+  if $debug_mode; then
+    brew install "$tool"
+  else
+    show_progress "Installing $tool..."
+    brew install "$tool" >/dev/null 2>&1
+  fi
+
+  if is_installed "$tool"; then
+    echo -e "\n$tool installed successfully!"
+  else
+    echo -e "\n\033[1;31m$tool installation failed. Please check the logs and try again.\033[0m"
+    exit 1
+  fi
+}
+
+
 # Parse command-line options
 while [[ "$1" =~ ^- ]]; do
   case $1 in
