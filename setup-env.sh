@@ -171,21 +171,24 @@ install_python_with_asdf() {
       asdf plugin-add python || true
       asdf install python "$python_version"
       asdf global python "$python_version"
+      asdf reshim python
     else
       show_progress "Installing Python $python_version..."
       asdf plugin-add python >/dev/null 2>&1 || true
       asdf install python "$python_version" >/dev/null 2>&1
       asdf global python "$python_version" >/dev/null 2>&1
+      asdf reshim python >/dev/null 2>&1
     fi
 
     if python --version 2>/dev/null | grep -q "$python_version"; then
       echo -e "\nPython $python_version installed and set as default successfully!"
     else
-      echo -e "\n\033[1;31mPython installation failed. Please check the logs and try again.\033[0m"
+      echo -e "\n\033[1;31mPython installation failed or not properly linked. Please check the logs and try again.\033[0m"
       exit 1
     fi
   fi
 }
+
 
 # Install AWS CLI v2 (official method)
 install_aws_cli() {
