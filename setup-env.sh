@@ -98,21 +98,6 @@ uninstall_software() {
 # Install Homebrew
 install_brew() {
   echo "Installing Homebrew..."
-
-  # Determine the correct Homebrew prefix based on the architecture
-  if [ "$(uname -m)" = "arm64" ]; then
-      # For Apple Silicon (M1/M2)
-      BREW_PREFIX="/opt/homebrew"
-  else
-      # For Intel-based Macs
-      BREW_PREFIX="/usr/local"
-  fi
-
-  # Ensure necessary directories exist and have correct ownership
-  echo "Preparing directories for Homebrew installation..."
-  sudo mkdir -p "${BREW_PREFIX}"
-  sudo chown -R "$(whoami):admin" "${BREW_PREFIX}"
-
   if $debug_mode; then
     NONINTERACTIVE=1 /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
   else
@@ -148,49 +133,53 @@ install_docker() {
 
 # Install asdf
 install_asdf() {
-  echo "Installing asdf via Homebrew..."
+  echo "Installing asdf..."
   if $debug_mode; then
-    brew install asdf
+    git clone https://github.com/asdf-vm/asdf.git ~/.asdf --branch v0.12.0
   else
-    show_progress "Installing asdf via Homebrew..."
-    brew install asdf >/dev/null 2>&1
+    show_progress "Installing asdf..."
+    git clone https://github.com/asdf-vm/asdf.git ~/.asdf --branch v0.12.0 >/dev/null 2>&1
   fi
-
-  # Add asdf initialization to shell profiles
-  echo '. "$(brew --prefix asdf)/libexec/asdf.sh"' >>~/.zshrc
-  echo '. "$(brew --prefix asdf)/libexec/asdf.sh"' >>~/.bashrc
-  echo 'source "$(brew --prefix asdf)/libexec/asdf.fish"' >>~/.config/fish/config.fish
-
-  # Reload shell profiles
-  source ~/.zshrc || source ~/.bashrc || fish -c "source ~/.config/fish/config.fish"
+  echo '. "$HOME/.asdf/asdf.sh"' >>~/.zshrc
+  echo '. "$HOME/.asdf/completions/asdf.bash"' >>~/.zshrc
+  echo '. "$HOME/.asdf/asdf.sh"' >>~/.bashrc
+  echo '. "$HOME/.asdf/completions/asdf.bash"' >>~/.bashrc
+  source ~/.zshrc || source ~/.bashrc
 
   if is_installed "asdf"; then
-    echo -e "\nasdf installed successfully via Homebrew!"
+    echo -e "\nasdf installed successfully!"
   else
-    echo -e "\n\033[1;31masdf installation via Homebrew failed. Please check the logs and try again.\033[0m"
+    echo -e "\n\033[1;31masdf installation failed. Please check the logs and try again.\033[0m"
     exit 1
   fi
 }
 
 # Install Python using asdf
 install_python_with_asdf() {
-  echo "Installing Python $python_version with asdf..."
-  if $debug_mode; then
-    asdf plugin-add python || true
-    asdf install python "$python_version"
-    asdf global python "$python_version"
-  else
-    show_progress "Installing Python $python_version..."
-    asdf plugin-add python >/dev/null 2>&1 || true
-    asdf install python "$python_version" >/dev/null 2>&1
-    asdf global python "$python_version" >/dev/null 2>&1
-  fi
+  echo "Checking Python $python_version installation with asdf..."
+  current_version=$(asdf list python 2>/dev/null | grep "$python_version" || true)
 
-  if python --version 2>/dev/null | grep -q "$python_version"; then
-    echo -e "\nPython $python_version installed and set as default successfully!"
+  if [ -n "$current_version" ]; then
+    echo -e "\033[1;32mPython $python_version is already installed and set as global version.\033[0m"
   else
-    echo -e "\n\033[1;31mPython installation failed. Please check the logs and try again.\033[0m"
-    exit 1
+    echo "Installing Python $python_version with asdf..."
+    if $debug_mode; then
+      asdf plugin-add python || true
+      asdf install python "$python_version"
+      asdf global python "$python_version"
+    else
+      show_progress "Installing Python $python_version..."
+      asdf plugin-add python >/dev/null 2>&1 || true
+      asdf install python "$python_version" >/dev/null 2>&1
+      asdf global python "$python_version" >/dev/null 2>&1
+    fi
+
+    if python --version 2>/dev/null | grep -q "$python_version"; then
+      echo -e "\nPython $python_version installed and set as default successfully!"
+    else
+      echo -e "\n\033[1;31mPython installation failed. Please check the logs and try again.\033[0m"
+      exit 1
+    fi
   fi
 }
 
