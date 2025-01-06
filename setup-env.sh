@@ -180,6 +180,17 @@ install_python_with_asdf() {
       asdf reshim python >/dev/null 2>&1
     fi
 
+    # Reload shell configuration without restarting terminal
+    echo "Reloading shell configuration..."
+    if [[ "$SHELL" == */zsh ]]; then
+      source ~/.zshrc
+    elif [[ "$SHELL" == */bash ]]; then
+      source ~/.bashrc || source ~/.bash_profile
+    elif [[ "$SHELL" == */fish ]]; then
+      source ~/.config/fish/config.fish
+    fi
+
+    # Verify the Python version
     if python --version 2>/dev/null | grep -q "$python_version"; then
       echo -e "\nPython $python_version installed and set as default successfully!"
     else
@@ -188,6 +199,7 @@ install_python_with_asdf() {
     fi
   fi
 }
+
 
 
 # Install AWS CLI v2 (official method)
