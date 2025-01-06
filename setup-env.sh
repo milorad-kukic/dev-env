@@ -78,8 +78,12 @@ uninstall_software() {
           rm -rf ~/.asdf
           sed -i '' '/asdf/d' ~/.zshrc ~/.bashrc 2>/dev/null || true
           ;;
-        kubectl | helm | jq | aws)
+        kubectl | helm | jq)
           brew uninstall "$tool"
+          ;;
+        aws)
+          sudo rm -rf /usr/local/aws-cli
+          sudo rm /usr/local/bin/aws
           ;;
       esac
       echo "$tool uninstalled."
@@ -183,20 +187,26 @@ install_python_with_asdf() {
   fi
 }
 
-# Install aws-okta-processor
-install_aws_okta_processor() {
-  echo "Installing aws-okta-processor..."
+# Install AWS CLI v2 (official method)
+install_aws_cli() {
+  echo "Installing AWS CLI v2..."
+  pkg_url="https://awscli.amazonaws.com/AWSCLIV2.pkg"
+  pkg_file="/tmp/AWSCLIV2.pkg"
+
   if $debug_mode; then
-    pip install aws-okta-processor
+    curl -o "$pkg_file" "$pkg_url"
+    sudo installer -pkg "$pkg_file" -target /
   else
-    show_progress "Installing aws-okta-processor..."
-    pip install aws-okta-processor >/dev/null 2>&1
+    show_progress "Downloading AWS CLI v2 package..."
+    curl -o "$pkg_file" "$pkg_url" >/dev/null 2>&1
+    show_progress "Installing AWS CLI v2..."
+    sudo installer -pkg "$pkg_file" -target / >/dev/null 2>&1
   fi
 
-  if pip show aws-okta-processor >/dev/null 2>&1; then
-    echo -e "\naws-okta-processor installed successfully!"
+  if is_installed "aws"; then
+    echo -e "\nAWS CLI v2 installed successfully!"
   else
-    echo -e "\n\033[1;31maws-okta-processor installation failed. Please check the logs and try again.\033[0m"
+    echo -e "\n\033[1;31mAWS CLI v2 installation failed. Please check the logs and try again.\033[0m"
     exit 1
   fi
 }
@@ -215,25 +225,6 @@ clone_dotfiles_repo() {
     echo -e "\nRepository cloned to $clone_dir successfully!"
   else
     echo -e "\n\033[1;31mCloning repository failed. Please check the logs and try again.\033[0m"
-    exit 1
-  fi
-}
-
-# Install additional CLI tools
-install_cli_tool() {
-  local tool=$1
-  echo "Installing $tool..."
-  if $debug_mode; then
-    brew install "$tool"
-  else
-    show_progress "Installing $tool..."
-    brew install "$tool" >/dev/null 2>&1
-  fi
-
-  if is_installed "$tool"; then
-    echo -e "\n$tool installed successfully!"
-  else
-    echo -e "\n\033[1;31m$tool installation failed. Please check the logs and try again.\033[0m"
     exit 1
   fi
 }
@@ -289,7 +280,8 @@ else
         brew) install_brew ;;
         docker) install_docker ;;
         asdf) install_asdf ;;
-        kubectl | helm | jq | aws) install_cli_tool "$tool" ;;
+        kubectl | helm | jq) install_cli_tool "$tool" ;;
+        aws) install_aws_cli ;;
       esac
     done
   else
