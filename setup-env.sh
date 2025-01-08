@@ -103,18 +103,26 @@ uninstall_software() {
 install_brew() {
   echo "Checking Homebrew installation..."
 
-  # Check if the script is running as root
-  if [ "$(id -u)" -eq 0 ]; then
-    echo -e "\033[1;31mERROR: Do not run this script as root! Run it as a normal user with sudo access.\033[0m"
-    exit 1
-  fi
-
   # Check if Homebrew is already installed
   if command -v brew >/dev/null 2>&1; then
     echo "Homebrew is already installed."
     return
   fi
 
+  # Check if the script is being run as root
+  if [ "$(id -u)" -eq 0 ]; then
+    echo -e "\033[1;33mWARNING: Running as root.\033[0m Homebrew discourages installation as root. Switching to the appropriate user..."
+    # Switch to the appropriate non-root user
+    if [ -n "$SUDO_USER" ]; then
+      sudo -u "$SUDO_USER" bash -c "$(declare -f install_brew); install_brew"
+      return
+    else
+      echo -e "\033[1;31mERROR: Cannot determine the non-root user. Please run this script as a regular user.\033[0m"
+      exit 1
+    fi
+  fi
+
+  # Install Homebrew as a normal user
   echo "Installing Homebrew..."
   if $debug_mode; then
     NONINTERACTIVE=1 /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
@@ -123,13 +131,15 @@ install_brew() {
     NONINTERACTIVE=1 /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)" >/dev/null 2>&1
   fi
 
-  if is_installed "brew"; then
+  # Verify the installation
+  if command -v brew >/dev/null 2>&1; then
     echo -e "\nHomebrew installed successfully!"
   else
     echo -e "\n\033[1;31mHomebrew installation failed. Please check the logs and try again.\033[0m"
     exit 1
   fi
 }
+
 
 
 # Install Docker
