@@ -101,7 +101,20 @@ uninstall_software() {
 
 # Install Homebrew
 install_brew() {
-  echo "Checking Homebrew installation..."
+  echo "Checking Homebrew installation prerequisites..."
+
+  # Prevent running as root
+  if [ "$(id -u)" -eq 0 ]; then
+    echo -e "\033[1;31mERROR: Do not run this script as root (e.g., using sudo ./script.sh).\033[0m"
+    echo "Run this script as a regular user. It will prompt for sudo when needed."
+    exit 1
+  fi
+
+  # Check if the user has sudo privileges
+  if ! sudo -n true 2>/dev/null; then
+    echo "This script requires sudo privileges to install Homebrew."
+    echo "You will be prompted for your password when necessary..."
+  fi
 
   # Check if Homebrew is already installed
   if command -v brew >/dev/null 2>&1; then
@@ -109,45 +122,39 @@ install_brew() {
     return
   fi
 
-  # Check if the script is being run as root
-  if [ "$(id -u)" -eq 0 ]; then
-    echo -e "\033[1;33mWARNING: Running as root.\033[0m Homebrew discourages installation as root."
-    if [ -n "$SUDO_USER" ]; then
-      echo "Switching to user: $SUDO_USER..."
-      sudo -u "$SUDO_USER" bash -c "$(declare -f install_brew); install_brew"
-      return
-    else
-      echo -e "\033[1;31mERROR: Cannot determine the non-root user. Please run this script as a regular user.\033[0m"
-      exit 1
-    fi
+  # Create necessary directories with sudo if they don't exist
+  HOMEBREW_PREFIX="/usr/local"
+  if [ "$(uname -m)" = "arm64" ]; then
+    HOMEBREW_PREFIX="/opt/homebrew"
   fi
 
-  # Check if the user has sudo privileges
-  if ! sudo -n true 2>/dev/null; then
-    echo -e "\033[1;31mERROR: This script requires administrator privileges (sudo access) to install Homebrew.\033[0m"
-    echo "Please ensure your user is part of the 'sudoers' group and try again."
+  echo "Ensuring necessary directories exist..."
+  sudo mkdir -p "${HOMEBREW_PREFIX}/bin" "${HOMEBREW_PREFIX}/etc" "${HOMEBREW_PREFIX}/include" "${HOMEBREW_PREFIX}/lib" "${HOMEBREW_PREFIX}/sbin" "${HOMEBREW_PREFIX}/share" "${HOMEBREW_PREFIX}/var" || {
+    echo -e "\033[1;31mERROR: Failed to create directories.\033[0m"
     exit 1
-  fi
+  }
 
-  # Install Homebrew as a normal user
+  echo "Setting proper permissions for Homebrew directories..."
+  sudo chown -R "$(whoami):admin" "${HOMEBREW_PREFIX}" || {
+    echo -e "\033[1;31mERROR: Failed to set permissions.\033[0m"
+    exit 1
+  }
+
+  # Install Homebrew as the current user
   echo "Installing Homebrew..."
-  if $debug_mode; then
-    NONINTERACTIVE=1 /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
-  else
-    show_progress "Installing Homebrew..."
-    NONINTERACTIVE=1 /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)" >/dev/null 2>&1
-  fi
+  NONINTERACTIVE=1 /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)" || {
+    echo -e "\033[1;31mERROR: Homebrew installation failed.\033[0m"
+    exit 1
+  }
 
   # Verify the installation
   if command -v brew >/dev/null 2>&1; then
     echo -e "\nHomebrew installed successfully!"
   else
-    echo -e "\n\033[1;31mHomebrew installation failed. Please check the logs and try again.\033[0m"
+    echo -e "\n\033[1;31mERROR: Homebrew installation failed. Please check the logs and try again.\033[0m"
     exit 1
   fi
 }
-
-
 
 
 
