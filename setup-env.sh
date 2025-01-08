@@ -106,7 +106,7 @@ install_brew() {
   # Prevent running as root
   if [ "$(id -u)" -eq 0 ]; then
     echo -e "\033[1;31mERROR: Do not run this script as root (e.g., using sudo ./script.sh).\033[0m"
-    echo "Run this script as a regular user. It will prompt for sudo when needed."
+    echo "Run this script as a regular user. It will prompt for sudo when necessary."
     exit 1
   fi
 
@@ -122,13 +122,17 @@ install_brew() {
     return
   fi
 
-  # Create necessary directories with sudo if they don't exist
-  HOMEBREW_PREFIX="/usr/local"
+  # Determine the appropriate Homebrew prefix based on architecture
   if [ "$(uname -m)" = "arm64" ]; then
     HOMEBREW_PREFIX="/opt/homebrew"
+    echo "Detected Apple Silicon (arm64). Installing Homebrew to /opt/homebrew..."
+  else
+    HOMEBREW_PREFIX="/usr/local"
+    echo "Detected Intel architecture. Installing Homebrew to /usr/local..."
   fi
 
-  echo "Ensuring necessary directories exist..."
+  # Ensure the Homebrew directory exists and set permissions for the current user
+  echo "Ensuring necessary directories exist and setting permissions..."
   sudo mkdir -p "${HOMEBREW_PREFIX}/bin" "${HOMEBREW_PREFIX}/etc" "${HOMEBREW_PREFIX}/include" "${HOMEBREW_PREFIX}/lib" "${HOMEBREW_PREFIX}/sbin" "${HOMEBREW_PREFIX}/share" "${HOMEBREW_PREFIX}/var" || {
     echo -e "\033[1;31mERROR: Failed to create directories.\033[0m"
     exit 1
@@ -155,6 +159,8 @@ install_brew() {
     exit 1
   fi
 }
+
+
 
 
 
