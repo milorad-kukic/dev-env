@@ -122,16 +122,22 @@ install_brew() {
     return
   fi
 
-  # Determine the appropriate Homebrew prefix based on architecture
+  # Determine Homebrew installation path based on architecture
   if [ "$(uname -m)" = "arm64" ]; then
     HOMEBREW_PREFIX="/opt/homebrew"
     echo "Detected Apple Silicon (arm64). Installing Homebrew to /opt/homebrew..."
   else
     HOMEBREW_PREFIX="/usr/local"
     echo "Detected Intel architecture. Installing Homebrew to /usr/local..."
+    
+    # Check if /usr/local is writable
+    if [ ! -w "/usr/local" ]; then
+      echo "/usr/local is not writable. Installing Homebrew in the home directory instead."
+      HOMEBREW_PREFIX="$HOME/homebrew"
+    fi
   fi
 
-  # Ensure the Homebrew directory exists and set permissions for the current user
+  # Ensure the Homebrew directory exists
   echo "Ensuring necessary directories exist and setting permissions..."
   sudo mkdir -p "${HOMEBREW_PREFIX}/bin" "${HOMEBREW_PREFIX}/etc" "${HOMEBREW_PREFIX}/include" "${HOMEBREW_PREFIX}/lib" "${HOMEBREW_PREFIX}/sbin" "${HOMEBREW_PREFIX}/share" "${HOMEBREW_PREFIX}/var" || {
     echo -e "\033[1;31mERROR: Failed to create directories.\033[0m"
