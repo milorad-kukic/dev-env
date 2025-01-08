@@ -111,8 +111,9 @@ install_brew() {
 
   # Check if the script is being run as root
   if [ "$(id -u)" -eq 0 ]; then
-    echo -e "\033[1;33mWARNING: Running as root.\033[0m Homebrew discourages installation as root. Switching to the appropriate user..."
+    echo -e "\033[1;33mWARNING: Running as root.\033[0m Homebrew discourages installation as root."
     if [ -n "$SUDO_USER" ]; then
+      echo "Switching to user: $SUDO_USER..."
       sudo -u "$SUDO_USER" bash -c "$(declare -f install_brew); install_brew"
       return
     else
@@ -123,8 +124,8 @@ install_brew() {
 
   # Check if the user has sudo privileges
   if ! sudo -n true 2>/dev/null; then
-    echo -e "\033[1;31mERROR: This script requires sudo access to install Homebrew.\033[0m"
-    echo "Please run the script as a user with administrator privileges."
+    echo -e "\033[1;31mERROR: This script requires administrator privileges (sudo access) to install Homebrew.\033[0m"
+    echo "Please ensure your user is part of the 'sudoers' group and try again."
     exit 1
   fi
 
@@ -145,6 +146,7 @@ install_brew() {
     exit 1
   fi
 }
+
 
 
 
